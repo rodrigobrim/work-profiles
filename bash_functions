@@ -12,6 +12,8 @@
 # export AZURE_SUBSCRIPTION_PRD_ID=
 # export AZURE_SC_RG_PREFIX=
 # export AZURE_SC_CLUSTER_PREFIX=
+# export SCRIPTCYCLE_AD_USERNAME=
+# export SCRIPTCYCLE_AD_PASSWORD=
 
 codefresh_auth () {
   export CODEFRESH_TOKEN=$_CODEFRESH_TOKEN
@@ -118,25 +120,31 @@ gen-xkcd-pass() {
   done | column
 }
 
-_k-decode-secret () {
-  secrets=`echo $1 | base64 -d`
-  for s in $secrets; do
-    key=`echo $s | cut -d',' -f1`
-    hash=`echo $s | cut -d',' -f2`
-    echo "$key: `echo $hash | base64 -d`"
-  done
+source "$(dirname -- "${BASH_SOURCE[0]}")/scripts/k8s/manage-secrets.sh"
+
+tfcheck() {
+  tflint --recursive
+  terraform fmt --recursive
+  terraform validate && terraform plan
 }
 
-k-decode-secret () {
-  SECRET=$1
-  START_WITH=$2
-  if [ -z "$SECRET" ]; then
-    echo "Usage: k-decode-secret <secret-name> [keys-starts-with]"
-    exit 1
+# Run a PowerShell script in-session on Windows host(s) via Ansible/WinRM (NTLM).
+# Usage: winrun '<powershell>' '<host1,host2,...>'   (or set WINRUN_HOSTS)
+# Creds come from $SCRIPTCYCLE_AD_USERNAME / $SCRIPTCYCLE_AD_PASSWORD.
+winrun() {
+  local script="$1" hosts="${2:-$WINRUN_HOSTS}"
+  if [ -z "$script" ] || [ -z "$hosts" ]; then
+    echo "Usage: winrun '<powershell>' '<comma-separated-hosts>'   (or set \$WINRUN_HOSTS)" >&2
+    return 2
   fi
-  if [ -z "$START_WITH" ]; then
-    _k-decode-secret `kubectl get secret $SECRET -o json | jq -r '.data | to_entries | .[] | [.key, .value] | join(",")' | base64 -b0`
-    return
-  fi
-  _k-decode-secret `kubectl get secret $SECRET -o json | jq -r --arg s "$START_WITH" '.data | with_entries(select(.key | startswith($s))) | to_entries | .[] | [.key, .value] | join(",")' | base64 -b0`
+  local b64
+  b64=$(printf '%s' "$script" | base64 | tr -d '\n')
+  OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES no_proxy='*' ANSIBLE_STDOUT_CALLBACK=minimal \
+  ansible all -i "${hosts%,}," -c winrm \
+    -e 'ansible_user={{ lookup("env","SCRIPTCYCLE_AD_USERNAME") }}' \
+    -e 'ansible_password={{ lookup("env","SCRIPTCYCLE_AD_PASSWORD") }}' \
+    -e ansible_port=5985 -e ansible_winrm_scheme=http \
+    -e ansible_winrm_transport=ntlm -e ansible_winrm_server_cert_validation=ignore \
+    -m ansible.windows.win_shell \
+    -a "\$s=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('$b64')); Invoke-Expression \$s"
 }

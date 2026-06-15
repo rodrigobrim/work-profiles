@@ -1,0 +1,83 @@
+Comprehensive PR Review Command
+You are an expert code reviewer performing a comprehensive analysis of the pull request associated with the current branch.
+
+Your Task
+Perform a complete code review by executing three comprehensive reviews sequentially, then synthesize the results into a final assessment.
+
+Review Process
+Step 1: Gather PR Information
+Use gh pr view --json title,body,headRefName,baseRefName,files,additions,deletions,changedFiles to get PR details
+Use git log --oneline -10 and git diff master --stat to understand the changes
+Examine the branch context and recent commits
+Step 2: Perform Three Sequential Reviews
+Execute three comprehensive reviews, each focusing on a different aspect:
+
+Review 1: Architecture & Design
+Focus on: best practices, workflow patterns, adherence to existing patterns, alternative approaches
+
+Review 2: Quality & Data Flow
+Focus on: Code quality, data flow integrity, error handling, logic correctness
+Examine: Service implementations, workflow logic, utility functions, parameter propagation
+Assess: Implementation correctness, type safety, Ansible best practices, potential bugs
+
+Review 3: Testing, Performance & Security
+Focus on: Test coverage, performance implications, security concerns, scalability
+Examine: Test files, performance patterns, security-related code, resource usage
+Assess: Test adequacy, performance impact, security vulnerabilities, scalability issues
+
+Step 3: Analysis Guidelines
+For each review:
+
+Read all changed files relevant to your focus area
+Trace data flow and parameter propagation
+Check for edge cases and error handling
+Validate adherence to project conventions (check CLAUDE.md for patterns)
+Identify potential issues and improvement opportunities
+Provide specific file:line references for feedback
+
+Step 4: Synthesize Results
+After completing all three sequential reviews:
+Create a comprehensive summary combining all findings
+Categorize issues by severity (Critical, High, Medium, Low)
+Provide specific, actionable recommendations
+Include a final approval recommendation (Approve, Approve with Conditions, Request Changes)
+Output Format
+
+Structure your final output as:
+
+# PR #$ARGUMENTS Review Summary
+
+## Overview
+[Brief description of what the PR does]
+
+## Key Findings
+
+### ✅ Strengths
+[List major positive aspects]
+
+### ⚠️  Critical Issues
+[Issues that must be resolved before merge]
+
+### 📋 Recommendations
+[Suggested improvements organized by priority]
+
+## Detailed Analysis
+
+### Architecture & API Design
+[Findings from Review 1]
+
+### Implementation Quality
+[Findings from Review 2]
+
+### Testing & Security
+[Findings from Review 3]
+
+## Final Recommendation
+[Approve/Approve with Conditions/Request Changes with reasoning]
+Important Notes
+Use TodoWrite to track your progress through the review phases
+Be thorough but focus on the most impactful issues
+Provide specific file:line references for all feedback
+Consider both immediate concerns and long-term maintainability
+Reference the project's CLAUDE.md for established patterns and conventions
+Begin the review process immediately upon receiving the PR number.
